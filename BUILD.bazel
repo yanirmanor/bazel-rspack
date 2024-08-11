@@ -1,0 +1,37 @@
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@npm//:@rsbuild/core/package_json.bzl", rsbuild_bin = "bin")
+
+# This macro expands to a link_npm_package for each third-party package in package.json
+npm_link_all_packages(name = "node_modules")
+
+CONFIGS = [
+    "rsbuild.config.mjs",
+    "package.json",
+]
+
+BUILD_DEPS = [":node_modules/" + d for d in [
+    "@rsbuild/core",
+    "@rsbuild/plugin-react",
+    "react",
+    "react-dom",
+]]
+
+copy_to_bin(
+    name = "srcs_export",
+    srcs = glob([
+        "src/**/*.css",
+        "src/**/*.svg",
+        "src/**/*.js",
+        "src/**/*.jsx",
+    ]),
+)
+
+rsbuild_bin.rsbuild(
+    name = "rsbuild",
+    srcs = BUILD_DEPS + CONFIGS + [":srcs_export"],
+    args = ["build --config rsbuild.config.mjs"],
+    chdir = package_name(),
+    out_dirs = ["dist"],
+    visibility = ["//visibility:public"],
+)
